@@ -903,6 +903,8 @@
                     seed: parseInt(document.getElementById('seed')?.value) || Math.floor(Math.random() * 4294967295),
                     image_url: document.getElementById('image_url')?.value || '',
                     mask_url: document.getElementById('mask_url')?.value || '',
+                    image_data: window.__imageData || '',
+                    mask_data: window.__maskData || '',
                     num_outputs: parseInt(document.getElementById('num_outputs')?.value) || 1
                 };
                 // 基于模型特性，清洗出最终要发送/展示的参数
@@ -920,10 +922,12 @@
                     num_outputs: rawParams.num_outputs
                 };
                 if (selectedModelMeta?.requiresImage) {
-                    params.image_url = rawParams.image_url;
+                    if (rawParams.image_data) params.image_data = rawParams.image_data;
+                    else params.image_url = rawParams.image_url;
                 }
                 if (selectedModelMeta?.requiresMask) {
-                    params.mask_url = rawParams.mask_url;
+                    if (rawParams.mask_data) params.mask_data = rawParams.mask_data;
+                    else params.mask_url = rawParams.mask_url;
                 }
                 
                 // 保存当前参数
@@ -931,16 +935,16 @@
                 
                 // 前端必填校验（依据模型元信息）
                 if (selectedModelMeta && selectedModelMeta.requiresImage) {
-                    if (!rawParams.image_url) {
-                        showStatus('该模型需要提供输入图像URL', 'error');
+                    if (!rawParams.image_url && !rawParams.image_data) {
+                        showStatus('请填写输入图像 URL 或从本地上传图片', 'error');
                         loadingOverlay.classList.add('hidden');
                         initialPrompt.classList.remove('hidden');
                         return;
                     }
                 }
                 if (selectedModelMeta && selectedModelMeta.requiresMask) {
-                    if (!rawParams.mask_url) {
-                        showStatus('局部重绘模型需要提供遮罩URL', 'error');
+                    if (!rawParams.mask_url && !rawParams.mask_data) {
+                        showStatus('请填写遮罩 URL 或从本地上传遮罩图片', 'error');
                         loadingOverlay.classList.add('hidden');
                         initialPrompt.classList.remove('hidden');
                         return;
@@ -1393,6 +1397,40 @@
                 if (e.key === 'Enter') submitLogin();
             });
         }
+    
+    // 本地图片上传：转换为 Data URL 后由 Worker 直接接收，不会保存到服务器
+    const readImageFile = (file, maxBytes = 10 * 1024 * 1024) => new Promise((resolve, reject) => {
+      if (!file) return resolve('');
+      if (!file.type || !file.type.startsWith('image/')) return reject(new Error('请选择图片文件'));
+      if (file.size > maxBytes) return reject(new Error('图片不能超过 10 MB'));
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('读取图片失败'));
+      reader.readAsDataURL(file);
+    });
+    document.getElementById('image_file')?.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      try {
+        window.__imageData = await readImageFile(file);
+        document.getElementById('imageFileName').textContent = file ? ('已选择：' + file.name) : '支持常见图片格式，建议不超过 10 MB';
+      } catch (err) {
+        window.__imageData = '';
+        e.target.value = '';
+        document.getElementById('imageFileName').textContent = err.message;
+      }
+    });
+    document.getElementById('mask_file')?.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      try {
+        window.__maskData = await readImageFile(file);
+        document.getElementById('maskFileName').textContent = file ? ('已选择：' + file.name) : '局部重绘时使用';
+      } catch (err) {
+        window.__maskData = '';
+        e.target.value = '';
+        document.getElementById('maskFileName').textContent = err.message;
+      }
+    });
+
     </script>
 </body>
 </html>
