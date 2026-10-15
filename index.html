@@ -333,14 +333,19 @@
                         <label for="prompt" class="block text-sm font-medium mb-1 flex items-center">
                             <i class="fa-solid fa-wand-magic-sparkles mr-1 text-xs"></i> 正向提示词
                         </label>
-                        <textarea id="prompt" rows="3" placeholder="描述您想要生成的图像内容及样式..." class="w-full">cyberpunk cat</textarea>
+                        <textarea id="prompt" rows="3" placeholder="用中文描述人像、证件照或风格..." class="w-full">自然真实的人像写真，柔和自然光，保留人物原本五官和身份特征，真实肤质，专业摄影</textarea>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                            <select id="portraitPreset" class="w-full" aria-label="人像风格预设">
+                                <option value="portrait">自然人像写真</option><option value="idphoto">标准证件照</option><option value="studio">专业影棚写真</option><option value="beauty">轻微美颜写真</option><option value="outdoor">户外自然光人像</option><option value="cinematic">电影感人像</option><option value="business">商务职业肖像</option><option value="anime">日系动漫肖像</option>
+                            </select>
+                            <button id="enhancePromptButton" type="button" class="btn btn-primary text-sm py-2 px-3"><i class="fa-solid fa-language mr-1"></i> 中文优化/翻译</button>
+                        </div>
+                        <p id="promptEnhanceStatus" class="text-xs text-gray-500 mt-1">用中文写需求，点击优化后生成英文提示词；可自行检查并修改。</p>
                     </div>
                     
                     <div>
-                        <label for="negative_prompt" class="block text-sm font-medium mb-1 flex items-center">
-                            <i class="fa-solid fa-ban mr-1 text-xs"></i> 反向提示词
-                        </label>
-                        <textarea id="negative_prompt" rows="2" placeholder="描述在生成的图像中要避免的元素文本..." class="w-full"></textarea>
+                        <label for="negative_prompt" class="block text-sm font-medium mb-1 flex items-center"><i class="fa-solid fa-ban mr-1 text-xs"></i> 反向提示词（避免出现）</label>
+                        <textarea id="negative_prompt" rows="2" placeholder="例如：模糊、过度磨皮、五官变形、额外手指..." class="w-full">blurry, low quality, over-smoothed skin, plastic skin, distorted face, asymmetrical eyes, deformed hands, extra fingers, text, watermark</textarea>
                     </div>
                     
                     <div>
@@ -1398,6 +1403,50 @@
             });
         }
     
+
+    const portraitPresets = {
+      portrait: { label: '自然人像写真', prompt: '自然真实的人像写真，柔和自然光，保留人物原本五官和身份特征，真实肤质，专业摄影', negative: 'blurry, low quality, over-smoothed skin, plastic skin, distorted face, asymmetrical eyes, deformed hands, extra fingers, text, watermark' },
+      idphoto: { label: '标准证件照', prompt: '标准正式证件照，正面平视镜头，头肩构图，端正自然的表情，五官清晰，均匀柔和的正面光线，纯白色背景，真实肤质，保持本人身份和五官特征，服装整洁，照片写实', negative: '侧脸，歪头，夸张表情，浓妆，过度磨皮，塑料皮肤，脸部变形，五官错位，模糊，阴影遮脸，复杂背景，文字，水印' },
+      studio: { label: '专业影棚写真', prompt: '高品质专业影棚人像摄影，柔和主光与自然轮廓光，细腻真实肤质，优雅姿态，精致但自然的色彩，浅景深，保留本人身份特征', negative: 'harsh flash, overexposure, plastic skin, excessive retouching, distorted face, blurry, watermark, text' },
+      beauty: { label: '轻微美颜写真', prompt: '自然轻美颜人像写真，轻微均匀肤色，保留毛孔和真实皮肤纹理，淡化小瑕疵但不改变五官比例，眼神清晰，柔和光线，保持本人身份特征', negative: 'heavy makeup, extreme beauty filter, plastic skin, over-smoothed skin, changed identity, distorted facial features, blurry, watermark' },
+      outdoor: { label: '户外自然光人像', prompt: '户外自然光人像摄影，柔和日光，真实肤色，清新自然的环境，背景柔和虚化，抓拍般自然姿态，专业摄影质感，保留本人五官和身份特征', negative: 'overexposure, harsh shadows, artificial skin, distorted face, blurry, oversaturated, text, watermark' },
+      cinematic: { label: '电影感人像', prompt: '电影感人像摄影，细腻的明暗层次，氛围感布光，真实皮肤纹理，电影色彩分级，浅景深，高级构图，保留本人身份和五官特征', negative: 'plastic skin, excessive retouching, distorted face, unnatural eyes, blurry, low resolution, text, watermark' },
+      business: { label: '商务职业肖像', prompt: '专业商务职业肖像照，得体简洁的商务着装，端庄自信的自然表情，干净背景，均匀柔和布光，真实肤质，构图专业，保留本人身份和五官特征', negative: 'casual messy clothing, exaggerated expression, plastic skin, distorted face, blurry, text, watermark' },
+      anime: { label: '日系动漫肖像', prompt: '精致日系动漫人物肖像，清晰干净的线条，柔和色彩，细腻眼睛，高质量插画，构图优雅', negative: 'photorealistic, low quality, messy lines, deformed face, asymmetrical eyes, blurry, text, watermark' }
+    };
+    const presetSelect = document.getElementById('portraitPreset');
+    presetSelect?.addEventListener('change', () => {
+      const preset = portraitPresets[presetSelect.value];
+      if (!preset) return;
+      document.getElementById('prompt').value = preset.prompt;
+      document.getElementById('negative_prompt').value = preset.negative;
+      document.getElementById('promptEnhanceStatus').textContent = '已载入「' + preset.label + '」预设；可继续补充人物、服装、背景等要求。';
+    });
+    document.getElementById('enhancePromptButton')?.addEventListener('click', async () => {
+      const button = document.getElementById('enhancePromptButton');
+      const status = document.getElementById('promptEnhanceStatus');
+      const prompt = document.getElementById('prompt')?.value?.trim() || '';
+      const password = document.getElementById('password')?.value || '';
+      const style = portraitPresets[presetSelect?.value]?.label || '人像写真';
+      if (!prompt) { status.textContent = '请先输入中文提示词。'; return; }
+      button.disabled = true;
+      button.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> 正在优化…';
+      status.textContent = '正在调用中文语言模型优化提示词，请稍候…';
+      try {
+        const response = await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'enhance_prompt', prompt, style, password }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || '提示词优化失败');
+        document.getElementById('prompt').value = data.prompt;
+        document.getElementById('negative_prompt').value = data.negative_prompt || '';
+        status.textContent = '优化完成' + (data.notes ? '：' + data.notes : '') + '。生成前请检查英文提示词。';
+      } catch (error) {
+        status.textContent = '优化失败：' + (error.message || '请稍后重试');
+      } finally {
+        button.disabled = false;
+        button.innerHTML = '<i class="fa-solid fa-language mr-1"></i> 中文优化/翻译';
+      }
+    });
+
     // 本地图片上传：转换为 Data URL 后由 Worker 直接接收，不会保存到服务器
     const readImageFile = (file, maxBytes = 10 * 1024 * 1024) => new Promise((resolve, reject) => {
       if (!file) return resolve('');
