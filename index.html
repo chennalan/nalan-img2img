@@ -326,7 +326,7 @@
                         <label for="password" class="block text-sm font-medium mb-1 flex items-center">
                             <i class="fa-solid fa-key mr-1 text-xs"></i> 访问密码
                         </label>
-                        <input type="password" id="password" placeholder="请输入访问密码" class="w-full" value="admin123">
+                        <input type="password" id="password" placeholder="请输入访问密码" class="w-full" value="">
                     </div>
                     
                     <div>
@@ -358,13 +358,19 @@
                             <label for="image_url" class="block text-sm font-medium mb-1 flex items-center">
                                 <i class="fa-solid fa-image mr-1 text-xs"></i> 输入图像URL（必填）
                             </label>
-                            <input type="url" id="image_url" placeholder="https://example.com/your-image.png" class="w-full">
+                            <input type="url" id="image_url" placeholder="图片直链（可选，上传图片优先）" class="w-full">
+                            <label for="image_file" class="block text-xs font-medium mt-2 mb-1">或从本地上传图片</label>
+                            <input type="file" id="image_file" accept="image/*" class="w-full">
+                            <p id="imageFileName" class="text-xs text-gray-500 mt-1">支持常见图片格式，建议不超过 10 MB</p>
                         </div>
                         <div>
                         <label for="mask_url" class="block text-sm font-medium mb-1 flex items-center">
                                 <i class="fa-solid fa-mask mr-1 text-xs"></i> 遮罩图像URL（必填，inpainting 使用）
                             </label>
-                            <input type="url" id="mask_url" placeholder="https://example.com/your-mask.png" class="w-full">
+                            <input type="url" id="mask_url" placeholder="遮罩图片直链（可选，上传图片优先）" class="w-full">
+                            <label for="mask_file" class="block text-xs font-medium mt-2 mb-1">或从本地上传遮罩图</label>
+                            <input type="file" id="mask_file" accept="image/*" class="w-full">
+                            <p id="maskFileName" class="text-xs text-gray-500 mt-1">局部重绘时使用</p>
                         </div>
                     </div>
                 </div>
