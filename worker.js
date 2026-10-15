@@ -148,6 +148,35 @@ export default {
           });
         }
         
+        if (data.action === 'enhance_prompt') {
+          const userPrompt = String(data.prompt || '').trim();
+          const style = String(data.style || 'portrait').slice(0, 80);
+          if (!userPrompt) return new Response(JSON.stringify({ error: '请先输入中文提示词' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          try {
+            const result = await env.AI.run('@cf/zai-org/glm-4.7-flash', {
+              messages: [
+                { role: 'system', content: '你是专业的人像摄影与图像生成提示词设计师。用户使用中文。请将用户的中文描述优化成适合图像生成模型的英文正向提示词，并生成英文 negative prompt。优先保留人物身份、脸型、五官、年龄感、发型、肤色、姿势和服装等用户明确要求；证件照要真实、端正、自然，不夸张磨皮，不改变身份，不虚构证件信息。输出必须是严格 JSON 对象，格式为 {"prompt":"...","negative_prompt":"...","notes":"中文简短说明"}，不要 Markdown。' },
+                { role: 'user', content: '风格/用途：' + style + '\n用户原始中文描述：' + userPrompt }
+              ],
+              max_tokens: 700,
+              temperature: 0.35
+            });
+            let raw = result?.response || result?.result?.response || result?.output_text || '';
+            if (!raw && typeof result === 'string') raw = result;
+            raw = String(raw).replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+            let parsed;
+            try { parsed = JSON.parse(raw); } catch (_) {
+              const match = raw.match(/\{[\s\S]*\}/);
+              if (match) { try { parsed = JSON.parse(match[0]); } catch (_) {} }
+            }
+            if (!parsed || !parsed.prompt) return new Response(JSON.stringify({ error: '提示词优化模型返回格式异常，请重试', detail: raw.slice(0, 300) }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+            return new Response(JSON.stringify({ prompt: String(parsed.prompt), negative_prompt: String(parsed.negative_prompt || ''), notes: String(parsed.notes || '') }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          } catch (error) {
+            console.error('Prompt enhancement failed:', error);
+            return new Response(JSON.stringify({ error: '中文提示词优化暂时失败，请稍后重试', detail: String(error?.message || error).slice(0, 240) }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }
+        }
+
         if ('prompt' in data && 'model' in data) {
           const selectedModel = AVAILABLE_MODELS.find(m => m.id === data.model);
           if (!selectedModel) {
